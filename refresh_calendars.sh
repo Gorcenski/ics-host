@@ -1,4 +1,7 @@
 #!/bin/bash
+# set environment variables
+source .env
+
 # download latest code
 git pull --rebase
 
