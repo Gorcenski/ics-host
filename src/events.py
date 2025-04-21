@@ -1,8 +1,10 @@
+import re
 from datetime import datetime
-from icalendar import Calendar
+from icalendar import Calendar, Event
 from zoneinfo import ZoneInfo
+from event_types import all_event_names
 
-class Event:
+class EventHelper:
     @classmethod
     def set_event_tzinfo_params(cls, event : datetime, tz_name : str):
         return {
@@ -27,7 +29,33 @@ class Event:
                 event.end = datetime(**cls.set_event_tzinfo_params(event.end, tzids))
             
             filename = f"{event.get('uid')}.ics"
-            cal = Calendar()
-            cal.add_component(event)
+            cal = cls.wrap_event(event)
             events[filename] = cal
         return events
+
+    @classmethod
+    def wrap_event(cls, event : Event) -> Calendar:
+        cal = Calendar()
+        cal.add_component(event)
+        return cal
+    
+    @classmethod
+    def categorize(cls, event : Event) -> Event:
+    # ignores any user-input values that we don't care about, and focuses on what we do
+    # this is to convert the description field in an event into categories fields
+    # this allows manual categorization by editing the event description
+        if not event.get("description"):
+            return event
+        category_match = re.search(r'\b(CATEGORIES:)(\S+)\b', event.get("description"))
+        if category_match:
+            label = category_match.group(1) # this should always be "CATEGORIES:""
+            cat_list = category_match.group(2)
+            categories = set(cat_list.split(","))
+            event.set_inline("categories", categories.intersection(all_event_names))
+            event.set_inline("description", event.get("description")
+                                            .replace(label + cat_list, "")
+                                            .replace("  ", " ")
+                                            .strip())
+            event = cls.wrap_event(event)
+            # add_event(filename, event_ics)
+        return event

@@ -1,7 +1,6 @@
+import event_types as Categories
 from enum import Enum
 from icalendar import Calendar, Event
-
-import event_types as Categories
 import airtrail
 import baikal
 import imap
@@ -27,7 +26,7 @@ if __name__ == "__main__":
     work = Calendar()
 
     # these add events to baikal directly
-    airtrail.fetch_airtrail_events()
+    airtrail_events = airtrail.fetch_airtrail_events(baikal.add_event)
     imap.fetch_email_events()
 
     events = baikal.fetch_remote_events()

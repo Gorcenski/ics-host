@@ -9,7 +9,7 @@ from imapclient.response_types import BodyData
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 import baikal
-from events import Event
+from events import EventHelper
 
 load_dotenv()
 
@@ -42,7 +42,7 @@ def get_ical_attachments(msg) -> list[Calendar]:
     return cal_attachments
 
 def upload_attached_events(cal : Calendar):
-    events = Event.split_multiple_events(cal)
+    events = EventHelper.split_multiple_events(cal)
     for filename, cal in events.items():
         baikal.add_event(filename, cal)
 
