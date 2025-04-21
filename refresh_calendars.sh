@@ -1,9 +1,9 @@
 #!/bin/bash
 # download latest code
-git checkout
+git pull --rebase
 
 # Activate the virtual environment
 source .venv/bin/activate
 
 # Run your Python script
-uv src/compile.py
+uv run src/compile.py
