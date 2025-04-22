@@ -92,13 +92,8 @@ class Baikal:
                                     auth=HTTPDigestAuth(username, password))
         if response.ok:
             calendar_name = os.path.basename(os.path.dirname(self.url))
-            if calendar_name == "default":
-                filename = "emilygorcenski.ics"
-            else:
-                filename = f"emilygorcenski_{calendar_name}.ics"
-            if response.ok:
-                try:
-                    with open(f"/www/calendar/{filename}", "wt") as ics_file:
-                        ics_file.write(response.text)
-                except:
-                    pass
+            try:
+                with open(f"/www/calendar/{calendar_name}.ics", "wt") as ics_file:
+                    ics_file.write(response.text)
+            except:
+                pass
