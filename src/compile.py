@@ -52,8 +52,8 @@ if __name__ == "__main__":
             class_ = getattr(module, c)
             for cal in calendars:
                 instance = class_(cal.add_event)
-            if isinstance(instance, EventsImporter):
-                instance.import_events()
+                if isinstance(instance, EventsImporter):
+                    instance.import_events()
         except ImportError as e:
             print(f"Error importing {m}: {e}")
     
