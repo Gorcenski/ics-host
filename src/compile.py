@@ -22,17 +22,18 @@ def is_work_public(event : Event) -> bool:
                for c in event.get("categories"))
 
 def get_events_from_server():
+    family = Calendar()
+    work = Calendar()
     all_events = Baikal.fetch_remote_events()
     for event in all_events:
-        family.events.append(event)
+        family.add_component(event)
 
         if "egorcens@thoughtworks.com" not in event.to_ical().decode("utf-8"):
             if is_work_public(event):
                 event.set_inline("classification", "PUBLIC")
             else:
                 event.set_inline("classification", "PRIVATE")
-            work.events.append(event)
-
+            work.add_component(event)
     try:
         with open("/www/calendar/emilygorcenski.ics", "wt") as ics_file:
             ics_file.write(family.to_ical().decode("utf-8"))
@@ -42,8 +43,7 @@ def get_events_from_server():
         pass
 
 if __name__ == "__main__":
-    family = Calendar()
-    work = Calendar()
+    
 
     sources = {
         "airtrail": "AirtrailImporter",
