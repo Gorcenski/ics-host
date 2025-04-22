@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 import re
 import requests
@@ -5,19 +6,32 @@ import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from icalendar import Calendar, Event
 from requests.auth import HTTPDigestAuth
+from event_types import Privacy
 
 class Baikal:
+    def __init__(self, url : str,
+                 privacy,
+                 except_list):
+        self.url = url
+        self.privacy = privacy
+        self.except_list = except_list
+
     @staticmethod
     def get_credentials() -> tuple[str, str]:
         load_dotenv()
         username = os.environ["BAIKAL_USERNAME"]
         password = os.environ["BAIKAL_PASSWORD"]
-        base_url = "https://baikal.emilygorcenski.com/cal.php/calendars/emily/default/"
-        return username, password, base_url
-
+        return username, password
+    
     @staticmethod
-    def fetch_remote_events() -> list[Event]:
-        username, password, base_url = Baikal.get_credentials()
+    def classify_event(event : Event, privacy : Privacy, except_list : Enum):
+        event.update({"CLASSIFICATION": privacy.name})
+        categories = set() if "CATEGORIES" not in event else set(event["CATEGORIES"])
+        if categories.issubset({s.name for s in except_list}) and categories:
+            event.update({"CLASSIFICATION": Privacy((privacy.value + 1) % 2).name})
+
+    def fetch_remote_events(self) -> list[Event]:
+        username, password = self.get_credentials()
         headers = {
             "Content-Type": "application/xml; charset=utf-8",
             "Depth": "infinity"
@@ -32,7 +46,7 @@ class Baikal:
         </d:propfind>
         """
         response = requests.request("PROPFIND",
-                                    base_url,
+                                    self.url,
                                     headers=headers,
                                     data=propfind_body,
                                     auth=HTTPDigestAuth(username, password))
@@ -51,20 +65,40 @@ class Baikal:
             return events
         return []
 
-    @staticmethod
-    def add_event(filename : str, event_ics : Calendar):
-        username, password, base_url = Baikal.get_credentials()
+    def add_event(self, filename : str, event_ics : Calendar):
+        username, password = Baikal.get_credentials()
         header = {
             "Content-Type": "text/calendar; charset=utf-8"
         }
         filename = filename.replace("@emilygorcenski.com", "")
+        for e in event_ics.events:
+            self.classify_event(e, self.privacy, self.except_list)
+            
         event_ics = event_ics \
                     .to_ical() \
                     .decode("utf-8") \
                     .replace("METHOD:REQUEST\r\n", "")
 
-        r = requests.put(f"{base_url}{filename}",
+        r = requests.put(f"{self.url}{filename}",
                             data=event_ics,
                             headers=header,
                             auth=HTTPDigestAuth(username, password))
         return r.status_code
+
+    def write_to_file(self):
+        username, password = Baikal.get_credentials()
+        response = requests.request("GET",
+                                    f"{self.url}?export",
+                                    auth=HTTPDigestAuth(username, password))
+        if response.ok:
+            calendar_name = os.path.basename(os.path.dirname(self.url))
+            if calendar_name == "default":
+                filename = "emilygorcenski.ics"
+            else:
+                filename = f"emilygorcenski_{calendar_name}.ics"
+            if response.ok:
+                try:
+                    with open(f"/www/calendar/{filename}", "wt") as ics_file:
+                        ics_file.write(response.text)
+                except:
+                    pass

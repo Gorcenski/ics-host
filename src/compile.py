@@ -1,64 +1,61 @@
 import importlib
-import event_types as Categories
-from enum import Enum
-from icalendar import Calendar, Event
 from baikal import Baikal
 from events import EventsImporter
-# import lingoda
-
-def is_work_public(event : Event) -> bool:
-    def get_value(type : Enum, category):
-        try:
-            return type[category].value < 10
-        except:
-            return False
-        
-    if not event.get("categories"):
-        return False
-    
-    return all((get_value(Categories.TerminType, c) |
-                get_value(Categories.AwayType, c) |
-                get_value(Categories.TransportType, c))
-               for c in event.get("categories"))
-
-def get_events_from_server():
-    family = Calendar()
-    work = Calendar()
-    all_events = Baikal.fetch_remote_events()
-    for event in all_events:
-        family.add_component(event)
-
-        if "egorcens@thoughtworks.com" not in event.to_ical().decode("utf-8"):
-            if is_work_public(event):
-                event.set_inline("classification", "PUBLIC")
-            else:
-                event.set_inline("classification", "PRIVATE")
-            work.add_component(event)
-    try:
-        with open("/www/calendar/emilygorcenski.ics", "wt") as ics_file:
-            ics_file.write(family.to_ical().decode("utf-8"))
-        with open("/www/calendar/emilygorcenski_work.ics", "wt") as ics_file:
-            ics_file.write(work.to_ical().decode("utf-8"))
-    except:
-        pass
+import event_types as et
 
 if __name__ == "__main__":
-    
-
+    base_url = "https://baikal.emilygorcenski.com/cal.php/calendars/"
+    username = "emily"
     sources = {
         "airtrail": "AirtrailImporter",
         "imap": "ImapImporter",
     }
+    calendar_data = [
+        {
+            "name": "default",
+            "privacy": et.Privacy.PUBLIC,
+            "except": []
+        },
+        {
+            "name": "work",
+            "privacy": et.Privacy.PRIVATE,
+            "except": [
+                et.TerminType.MEETING,
+                et.TerminType.CONFERENCE,
+                et.TerminType.CLASS,
+                et.TerminType.TRAINING,
+                et.AwayType.TRIP,
+                et.AwayType.HOTEL,
+                et.AwayType.BNB,
+                et.AwayType.COUCH,
+                et.AwayType.RESORT,
+                et.TransportType.BUS,
+                et.TransportType.TRAIN,
+                et.TransportType.FLIGHT,
+                et.TransportType.FERRY,
+                et.TransportType.CAR,
+            ]
+        },
+    ]
+    calendar_names = [
+        "default",
+        "work",
+    ]
+    a = et.Privacy.PUBLIC
 
+    calendars = [Baikal(f"{base_url}{username}/{c['name']}/",
+                        c['privacy'],
+                        c['except']) for c in calendar_data]
     for m, c in sources.items():
         try:
             module = importlib.import_module(m)
             class_ = getattr(module, c)
-            instance = class_(Baikal.add_event)
+            for cal in calendars:
+                instance = class_(cal.add_event)
             if isinstance(instance, EventsImporter):
                 instance.import_events()
         except ImportError as e:
             print(f"Error importing {m}: {e}")
-        
-
-    get_events_from_server()    
+    
+    for c in calendars:
+        c.write_to_file()
