@@ -1,3 +1,4 @@
+from abc import ABC
 import re
 from datetime import datetime
 from icalendar import Calendar, Event
@@ -59,3 +60,10 @@ class EventHelper:
             event = cls.wrap_event(event)
             # add_event(filename, event_ics)
         return event
+
+class EventsImporter(ABC):
+    def __init__(self, dispatch : callable):
+        self.dispatch = dispatch
+        
+    def import_events(self) -> list[Event]:
+        raise NotImplementedError("Subclasses must implement this method")

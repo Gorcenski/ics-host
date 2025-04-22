@@ -1,9 +1,9 @@
+import importlib
 import event_types as Categories
 from enum import Enum
 from icalendar import Calendar, Event
-import airtrail
-import baikal
-import imap
+from baikal import Baikal
+from events import EventsImporter
 # import lingoda
 
 def is_work_public(event : Event) -> bool:
@@ -21,18 +21,9 @@ def is_work_public(event : Event) -> bool:
                 get_value(Categories.TransportType, c))
                for c in event.get("categories"))
 
-if __name__ == "__main__":
-    family = Calendar()
-    work = Calendar()
-
-    # these add events to baikal directly
-    airtrail_events = airtrail.fetch_airtrail_events(baikal.add_event)
-    imap.fetch_email_events()
-
-    events = baikal.fetch_remote_events()
-    # events.extend(lingoda.fetch_lingoda_events())
-
-    for event in events:
+def get_events_from_server():
+    all_events = Baikal.fetch_remote_events()
+    for event in all_events:
         family.events.append(event)
 
         if "egorcens@thoughtworks.com" not in event.to_ical().decode("utf-8"):
@@ -49,3 +40,25 @@ if __name__ == "__main__":
             ics_file.write(work.to_ical().decode("utf-8"))
     except:
         pass
+
+if __name__ == "__main__":
+    family = Calendar()
+    work = Calendar()
+
+    sources = {
+        "airtrail": "AirtrailImporter",
+        "imap": "ImapImporter",
+    }
+
+    for m, c in sources.items():
+        try:
+            module = importlib.import_module(m)
+            class_ = getattr(module, c)
+            instance = class_(Baikal.add_event)
+            if isinstance(instance, EventsImporter):
+                instance.import_events()
+        except ImportError as e:
+            print(f"Error importing {m}: {e}")
+        
+
+    get_events_from_server()    
