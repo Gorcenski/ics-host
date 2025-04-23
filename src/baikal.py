@@ -6,16 +6,10 @@ import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from icalendar import Calendar, Event
 from requests.auth import HTTPDigestAuth
+from events import EventFile
 from event_types import Privacy
 
 class Baikal:
-    def __init__(self, url : str,
-                 privacy,
-                 except_list):
-        self.url = url
-        self.privacy = privacy
-        self.except_list = except_list
-
     @staticmethod
     def get_credentials() -> tuple[str, str]:
         load_dotenv()
@@ -24,14 +18,15 @@ class Baikal:
         return username, password
     
     @staticmethod
-    def classify_event(event : Event, privacy : Privacy, except_list : Enum):
+    def classify_event(privacy : Privacy, except_list : Enum, event : Event):
         event.update({"CLASSIFICATION": privacy.name})
         categories = set() if "CATEGORIES" not in event else set(event["CATEGORIES"])
         if categories.issubset({s.name for s in except_list}) and categories:
             event.update({"CLASSIFICATION": Privacy((privacy.value + 1) % 2).name})
 
-    def fetch_remote_events(self) -> list[Event]:
-        username, password = self.get_credentials()
+    @classmethod
+    def fetch_remote_events(cls, url : str) -> list[Event]:
+        username, password = cls.get_credentials()
         headers = {
             "Content-Type": "application/xml; charset=utf-8",
             "Depth": "infinity"
@@ -46,7 +41,7 @@ class Baikal:
         </d:propfind>
         """
         response = requests.request("PROPFIND",
-                                    self.url,
+                                    url,
                                     headers=headers,
                                     data=propfind_body,
                                     auth=HTTPDigestAuth(username, password))
@@ -65,33 +60,40 @@ class Baikal:
             return events
         return []
 
-    def add_event(self, filename : str, event_ics : Calendar):
-        username, password = Baikal.get_credentials()
+    @classmethod
+    def add_event(cls, 
+                  event_file : EventFile,
+                  url : str,
+                  default_privacy : Privacy,
+                  except_list : Enum):
+        username, password = cls.get_credentials()
         header = {
             "Content-Type": "text/calendar; charset=utf-8"
         }
-        filename = filename.replace("@emilygorcenski.com", "")
-        for e in event_ics.events:
-            self.classify_event(e, self.privacy, self.except_list)
+        filename = event_file.filename.replace("@emilygorcenski.com", "")
+        event_cal = event_file.event_ics
+        for e in event_cal.events:
+            cls.classify_event(default_privacy, except_list, e)
             
-        event_ics = event_ics \
+        event_cal = event_cal \
                     .to_ical() \
                     .decode("utf-8") \
                     .replace("METHOD:REQUEST\r\n", "")
 
-        r = requests.put(f"{self.url}{filename}",
-                            data=event_ics,
+        r = requests.put(f"{url}{filename}",
+                            data=event_cal,
                             headers=header,
                             auth=HTTPDigestAuth(username, password))
         return r.status_code
 
-    def write_to_file(self):
-        username, password = Baikal.get_credentials()
+    @classmethod
+    def write_to_file(cls, url : str):
+        username, password = cls.get_credentials()
         response = requests.request("GET",
-                                    f"{self.url}?export",
+                                    f"{url}?export",
                                     auth=HTTPDigestAuth(username, password))
         if response.ok:
-            calendar_name = os.path.basename(os.path.dirname(self.url))
+            calendar_name = os.path.basename(os.path.dirname(url))
             try:
                 with open(f"/www/calendar/{calendar_name}.ics", "wt") as ics_file:
                     ics_file.write(response.text)

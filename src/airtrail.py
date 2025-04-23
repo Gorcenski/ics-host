@@ -10,14 +10,10 @@ from datetime import datetime, timedelta
 from dateutil import parser
 from dotenv import load_dotenv
 from icalendar import Event, vDatetime
-from events import EventHelper, EventsImporter
+from events import EventHelper, EventsImporter, EventFile
 
 
 class AirtrailImporter(EventsImporter):
-    def __init__(self, dispatch: Callable[..., None]):
-        super().__init__(dispatch)
-        self.dispatch = dispatch
-
     @staticmethod
     def get_time() -> datetime:
         utc = pytz.UTC
@@ -84,34 +80,36 @@ class AirtrailImporter(EventsImporter):
         cursor = db.cursor()
         return cursor
 
-    def import_events(self) -> list[Event]:
-        airtrail_endpoint, airtrail_key = self.get_credentials()
-        cursor = self.load_airport_db()        
+    @classmethod
+    def fetch_events(cls) -> list[Event]:
+        airtrail_endpoint, airtrail_key = cls.get_credentials()
+        cursor = cls.load_airport_db()        
         r = requests.get(airtrail_endpoint,
                          headers={"Authorization": f"Bearer {airtrail_key}"})
         
-        now = self.get_time()
+        now = cls.get_time()
         is_future = lambda flight: parser.parse(flight["departure"]) > now
         
         events = []
         if r.ok:
             future_flights = list(filter(is_future, r.json()["flights"]))
             for flight in future_flights:
-                origin      = self.format_airport_details(
-                                *self.get_airport_details(cursor,
+                origin      = cls.format_airport_details(
+                                *cls.get_airport_details(cursor,
                                                           flight["from"]["iata"]))
-                destination = self.format_airport_details(
-                                *self.get_airport_details(cursor,
+                destination = cls.format_airport_details(
+                                *cls.get_airport_details(cursor,
                                                           flight["to"]["iata"]))
-                flight_event = Event(**self.make_ical_data(origin,
+                flight_event = Event(**cls.make_ical_data(origin,
                                                            destination,
                                                            flight))
-                flight_ics = EventHelper.wrap_event(flight_event)
-                boarding_event = Event(**self.make_boarding_blocker(flight))
-                boarding_ics = EventHelper.wrap_event(boarding_event)
-                self.dispatch(f"{flight_event.get('uid')}.ics", flight_ics)
-                self.dispatch(f"{boarding_event.get('uid')}.ics", boarding_ics)
-                events.extend([flight_event, boarding_event])
+                boarding_event = Event(**cls.make_boarding_blocker(flight))
+                events.extend([
+                    EventFile(filename=f"{flight_event.get('uid')}.ics",
+                              event_ics=EventHelper.wrap_event(flight_event)),
+                    EventFile(filename=f"{boarding_event.get('uid')}.ics",
+                              event_ics=EventHelper.wrap_event(boarding_event))
+                ])
         else:
             print("Failed to fetch data from Airtrail API.")
             print(r.status_code, r.text)

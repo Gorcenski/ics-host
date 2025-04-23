@@ -42,17 +42,9 @@ class ImapImporter(EventsImporter):
                 continue
         return cal_attachments
 
-    @staticmethod
-    def upload_attached_events(cal : Calendar, dispatch : Callable[..., None]):
-        events = EventHelper.split_multiple_events(cal)
-        out = []
-        for filename, c in events.items():
-            out.append(c)
-            dispatch(filename, c)
-        return out
-
-    def import_events(self):
-        email_username, email_password, email_server = self.get_credentials()
+    @classmethod
+    def fetch_events(cls):
+        email_username, email_password, email_server = cls.get_credentials()
         server = IMAPClient(email_server, use_uid=True, ssl=993)
         server.login(email_username, email_password)
         server.select_folder('INBOX', readonly=True)
@@ -62,8 +54,7 @@ class ImapImporter(EventsImporter):
         events = []
         for _, content in messages.items():
             raw = email.message_from_bytes(content[b'RFC822'])
-            ics_attachments = self.get_ical_attachments(raw)
+            ics_attachments = cls.get_ical_attachments(raw)
             for cal in ics_attachments:
-                cal_events = self.upload_attached_events(cal, self.dispatch)
-                events.extend(cal_events)
+                events.extend(EventHelper.split_multiple_events(cal))
         return events

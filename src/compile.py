@@ -1,3 +1,4 @@
+from functools import partial
 import importlib
 from baikal import Baikal
 from events import EventsImporter
@@ -12,14 +13,14 @@ if __name__ == "__main__":
     }
     calendar_data = [
         {
-            "name": "default",
-            "privacy": et.Privacy.PUBLIC,
-            "except": []
+            "url": f"{base_url}{username}/default/",
+            "default_privacy": et.Privacy.PUBLIC,
+            "except_list": []
         },
         {
-            "name": "work",
-            "privacy": et.Privacy.PRIVATE,
-            "except": [
+            "url": f"{base_url}{username}/work/",
+            "default_privacy": et.Privacy.PRIVATE,
+            "except_list": [
                 et.TerminType.MEETING,
                 et.TerminType.CONFERENCE,
                 et.TerminType.CLASS,
@@ -41,21 +42,19 @@ if __name__ == "__main__":
         "default",
         "work",
     ]
-    a = et.Privacy.PUBLIC
 
-    calendars = [Baikal(f"{base_url}{username}/{c['name']}/",
-                        c['privacy'],
-                        c['except']) for c in calendar_data]
+    importers = [partial(Baikal.add_event,**c) for c in calendar_data]
     for m, c in sources.items():
         try:
             module = importlib.import_module(m)
             class_ = getattr(module, c)
-            for cal in calendars:
-                instance = class_(cal.add_event)
-                if isinstance(instance, EventsImporter):
-                    instance.import_events()
+            instance = class_(None)
+            if isinstance(instance, EventsImporter):
+                events = instance.fetch_events()
+                for importer in importers:
+                    instance.add_event(events, importer)
         except ImportError as e:
             print(f"Error importing {m}: {e}")
     
-    for c in calendars:
-        c.write_to_file()
+    for c in calendar_data:
+        Baikal.write_to_file(c["url"])

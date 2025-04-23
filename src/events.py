@@ -1,9 +1,15 @@
 from abc import ABC
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from icalendar import Calendar, Event
 from zoneinfo import ZoneInfo
 from event_types import all_event_names
+
+@dataclass
+class EventFile:
+    filename : str
+    event_ics : Calendar
 
 class EventHelper:
     @classmethod
@@ -23,15 +29,14 @@ class EventHelper:
         if calendar.timezones:
             tzids = calendar.timezones[0].tz_name
 
-        events = {}
+        events = []
         for event in calendar.events:
             if calendar.timezones:
                 event.start = datetime(**cls.set_event_tzinfo_params(event.start, tzids))
                 event.end = datetime(**cls.set_event_tzinfo_params(event.end, tzids))
             
-            filename = f"{event.get('uid')}.ics"
-            cal = cls.wrap_event(event)
-            events[filename] = cal
+            events.append(EventFile(filename=f"{event.get('uid')}.ics",
+                                    event_ics=cls.wrap_event(event)))
         return events
 
     @classmethod
@@ -58,12 +63,21 @@ class EventHelper:
                                             .replace("  ", " ")
                                             .strip())
             event = cls.wrap_event(event)
-            # add_event(filename, event_ics)
         return event
 
 class EventsImporter(ABC):
     def __init__(self, dispatch : callable):
         self.dispatch = dispatch
         
-    def import_events(self) -> list[Event]:
+    def fetch_events(self) -> list[Event]:
         raise NotImplementedError("Subclasses must implement this method")
+
+    def add_events(self, events : list[Event]):
+        for event in events:
+            self.dispatch(event.filename, event.event_ics)
+
+    @classmethod
+    def add_event(cls, events : list[EventFile], dispatch : callable):
+        for event in events:
+            print(f"{event.filename}")
+            dispatch(event)
