@@ -79,5 +79,4 @@ class EventsImporter(ABC):
     @classmethod
     def add_event(cls, events : list[EventFile], dispatch : callable):
         for event in events:
-            print(f"{event.filename}")
             dispatch(event)
