@@ -19,10 +19,10 @@ class Baikal:
     
     @staticmethod
     def classify_event(privacy : Privacy, except_list : Enum, event : Event):
-        event.update({"CLASSIFICATION": privacy.name})
+        event.update({"CLASS": privacy.name})
         categories = set() if "CATEGORIES" not in event else set(event["CATEGORIES"])
         if categories.issubset({s.name for s in except_list}) and categories:
-            event.update({"CLASSIFICATION": Privacy((privacy.value + 1) % 2).name})
+            event.update({"CLASS": Privacy((privacy.value + 1) % 2).name})
 
     @classmethod
     def fetch_remote_events(cls, url : str) -> list[Event]:
