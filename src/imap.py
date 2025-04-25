@@ -30,10 +30,6 @@ class ImapImporter(EventsImporter):
         for part in msg.walk():
             if part.get_content_maintype() == 'multipart':  
                 continue 
-            if not ('application/ics' in part.get('Content-Type') or
-                    'text/calendar' in part.get('Content-Type') or
-                    'text/plain' in part.get('Content-Type')):
-                continue
             try:
                 ics = part.get_payload(decode=True).decode('utf-8')
                 cal = Calendar.from_ical(ics)
