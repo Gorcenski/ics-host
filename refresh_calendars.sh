@@ -5,8 +5,5 @@ source .env
 # download latest code
 git pull --rebase
 
-# Activate the virtual environment
-source .venv/bin/activate
-
 # Run your Python script
-uv run src/compile.py
+uv run --project /home/ubuntu/ics-host src/compile.py
