@@ -1,5 +1,6 @@
 from functools import partial
 import importlib
+import logging
 from baikal import Baikal
 from events import EventsImporter
 import event_types as et
@@ -52,6 +53,7 @@ if __name__ == "__main__":
             if isinstance(instance, EventsImporter):
                 events = instance.fetch_events()
                 for importer in importers:
+                    logging.info(f"Adding events from {type(importer)}")
                     instance.add_event(events, importer)
         except ImportError as e:
             print(f"Error importing {m}: {e}")
