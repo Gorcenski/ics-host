@@ -33,7 +33,9 @@ class Baikal:
         if "CATEGORIES" in event:
             try:
                 categories = {c.decode("utf-8") for c in event.get("categories").to_ical()}
-            except:
+            except Exception as e:
+                print(e)
+                input()
                 categories = set(event.get("categories"))
         else:
             categories = set()
