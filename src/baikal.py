@@ -96,6 +96,7 @@ class Baikal:
             calendar_name = os.path.basename(os.path.dirname(url))
             try:
                 with open(f"/www/calendar/{calendar_name}.ics", "wt") as ics_file:
+                    print(f"writing to {calendar_name}...")
                     ics_file.write(response.text)
             except:
                 pass
