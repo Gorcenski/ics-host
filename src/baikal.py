@@ -32,14 +32,10 @@ class Baikal:
         event.update({"CLASS": privacy.name})
         if "CATEGORIES" in event:
             try:
-                categories = {c for c in event.get("categories").to_ical()}
-            except Exception as e:
-                print(e)
+                print(event.get("categories").to_ical())
+            except:
                 print(event.get("categories"))
-                input()
-                categories = set(event.get("categories"))
-        else:
-            categories = set()
+        categories = set() if "CATEGORIES" not in event else set([str(c) for c in event["CATEGORIES"]])
         if categories.issubset({s.name for s in except_list}) and categories:
             event.update({"CLASS": Privacy((privacy.value + 1) % 2).name})
 
