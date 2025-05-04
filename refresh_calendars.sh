@@ -9,4 +9,4 @@ source .env
 git pull --rebase
 
 # Run your Python script
-uv run --project /home/ubuntu/ics-host src/compile.py
+/home/ubuntu/.local/bin/uv run --project /home/ubuntu/ics-host src/compile.py
