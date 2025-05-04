@@ -33,9 +33,12 @@ class Baikal:
         categories = set()
         if "CATEGORIES" in event:
             try:
-                categories = set(event.get("categories").to_ical().decode("utf-8").split(","))
-            except:
                 categories = set(event.get("categories"))
+            except Exception as e:
+                categories = {
+                    c.to_ical().decode("utf-8")
+                    for c in event.get("categories")
+                }                
         if categories.issubset({s.name for s in except_list}) and categories:
             event.update({"CLASS": Privacy((privacy.value + 1) % 2).name})
 
