@@ -33,7 +33,7 @@ class Baikal:
         if "CATEGORIES" in event:
             import icalendar.prop as p
             for c in event["CATEGORIES"]:
-                print(p.vCategory.from_ical())
+                print(p.vCategory.from_ical(event))
         categories = set() if "CATEGORIES" not in event else set([str(c) for c in event["CATEGORIES"]])
         if categories.issubset({s.name for s in except_list}) and categories:
             event.update({"CLASS": Privacy((privacy.value + 1) % 2).name})
