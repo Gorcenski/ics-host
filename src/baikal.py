@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from icalendar import Calendar, Event
 from requests.auth import HTTPDigestAuth
-from events import EventFile, EventsImporter
+from events import EventFile, EventsImporter, EventHelper
 from event_types import Privacy
 
 
@@ -64,7 +64,8 @@ class Baikal:
             calendar_data   = [p.find('{DAV:}prop')
                                .find('{urn:ietf:params:xml:ns:caldav}calendar-data')
                                for p in filter(lambda x: x is not None, propstats)]
-            events          = [event
+            events          = [EventFile(filename=f"{event['uid']}.ics",
+                                         event_ics=EventHelper.wrap_event(event))
                                for data in filter(lambda x: x is not None, calendar_data)
                                for event in Calendar.from_ical(data.text).events]
             return events

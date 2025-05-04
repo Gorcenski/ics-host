@@ -41,10 +41,6 @@ if __name__ == "__main__":
             ]
         },
     ]
-    calendar_names = [
-        "default",
-        "work",
-    ]
 
     importers = [partial(Baikal.add_event,**c) for c in calendar_data]
     for m, c in sources.items():
