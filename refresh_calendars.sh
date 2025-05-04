@@ -1,4 +1,7 @@
 #!/bin/bash
+
+PATH=$PATH:/home/ubuntu/.local/bin
+
 # set environment variables
 source .env
 
@@ -6,4 +9,5 @@ source .env
 git pull --rebase
 
 # Run your Python script
-uv run --project /home/ubuntu/ics-host src/compile.py
+# uv run --project /home/ubuntu/ics-host src/compile.py
+uv
