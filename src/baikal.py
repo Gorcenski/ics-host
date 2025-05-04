@@ -32,7 +32,7 @@ class Baikal:
         event.update({"CLASS": privacy.name})
         if "CATEGORIES" in event:
             try:
-                categories = {c.decode("utf-8") for c in event.get("categories").to_ical()}
+                categories = {c for c in event.get("categories").to_ical()}
             except Exception as e:
                 print(e)
                 print(event.get("categories"))
