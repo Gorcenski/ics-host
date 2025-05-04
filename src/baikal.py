@@ -6,8 +6,18 @@ import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from icalendar import Calendar, Event
 from requests.auth import HTTPDigestAuth
-from events import EventFile
+from events import EventFile, EventsImporter
 from event_types import Privacy
+
+
+class BaikalImporter(EventsImporter):
+    @classmethod
+    def fetch_events(cls):
+        load_dotenv()
+        baikal_url = os.environ["BAIKAL_URL"]
+        username = os.environ["BAIKAL_USERNAME"]
+        url = f"{baikal_url}{username}/default"
+        return Baikal.fetch_remote_events(url)
 
 class Baikal:
     @staticmethod
