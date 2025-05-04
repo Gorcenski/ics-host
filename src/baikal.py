@@ -30,6 +30,8 @@ class Baikal:
     @staticmethod
     def classify_event(privacy : Privacy, except_list : Enum, event : Event):
         event.update({"CLASS": privacy.name})
+        if "CATEGORIES" in event:
+            print(event["CATEGORIES"])
         categories = set() if "CATEGORIES" not in event else set([str(c) for c in event["CATEGORIES"]])
         if categories.issubset({s.name for s in except_list}) and categories:
             event.update({"CLASS": Privacy((privacy.value + 1) % 2).name})
