@@ -89,7 +89,9 @@ class Baikal:
         header = {
             "Content-Type": "text/calendar; charset=utf-8"
         }
-        filename = event_file.filename.replace("@emilygorcenski.com", "")
+        if "@emilygorcenski.com" in event_file.filename:
+            return 200
+        filename = event_file.filename
         event_cal = event_file.event_ics
         for e in event_cal.events:
             cls.classify_event(default_privacy, except_list, e)
@@ -98,8 +100,6 @@ class Baikal:
                     .to_ical() \
                     .decode("utf-8") \
                     .replace("METHOD:REQUEST\r\n", "")
-        if "LH1930" in event_cal:
-            print(event_cal)
         r = requests.put(f"{url}{filename}",
                             data=event_cal,
                             headers=header,

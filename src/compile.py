@@ -12,7 +12,7 @@ if __name__ == "__main__":
     sources = {
         "airtrail": "AirtrailImporter",
         "imap": "ImapImporter",
-        # "baikal": "BaikalImporter",
+        "baikal": "BaikalImporter",
     }
     calendar_data = [
         {
