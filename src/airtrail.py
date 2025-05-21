@@ -104,7 +104,6 @@ class AirtrailImporter(EventsImporter):
                                                            destination,
                                                            flight))
                 boarding_event = Event(**cls.make_boarding_blocker(flight))
-                print(flight_event.to_ical())
                 events.extend([
                     EventFile(filename=f"{flight_event.get('uid')}.ics",
                               event_ics=EventHelper.wrap_event(flight_event)),
