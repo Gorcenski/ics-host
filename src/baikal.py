@@ -90,6 +90,7 @@ class Baikal:
             "Content-Type": "text/calendar; charset=utf-8"
         }
         if "@emilygorcenski.com" in event_file.filename:
+            print(f"Deleting {event_file.filename}")
             event_cal = event_cal \
                     .to_ical() \
                     .decode("utf-8")
