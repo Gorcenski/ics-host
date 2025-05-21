@@ -8,6 +8,9 @@ from icalendar import Calendar, Event
 from requests.auth import HTTPDigestAuth
 from events import EventFile, EventsImporter, EventHelper
 from event_types import Privacy
+import logging
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 class BaikalImporter(EventsImporter):
@@ -87,7 +90,8 @@ class Baikal:
         event_cal = event_file.event_ics
         for e in event_cal.events:
             cls.classify_event(default_privacy, except_list, e)
-            
+        
+        logging.info(f"Adding {event_cal['summary']}")
         event_cal = event_cal \
                     .to_ical() \
                     .decode("utf-8") \
