@@ -91,7 +91,7 @@ class Baikal:
         }
         if "@emilygorcenski.com" in event_file.filename:
             print(f"Deleting {event_file.filename}")
-            event_cal = event_cal \
+            event_cal = event_file.event_ics \
                     .to_ical() \
                     .decode("utf-8")
             r = requests.delete(f"{url}{event_file.filename}",
