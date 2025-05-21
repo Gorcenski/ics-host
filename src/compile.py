@@ -5,8 +5,6 @@ from baikal import Baikal
 from events import EventsImporter
 import event_types as et
 
-logging.getLogger().setLevel(logging.INFO)
-
 if __name__ == "__main__":
     print("starting sync...")
     base_url = "https://baikal.emilygorcenski.com/cal.php/calendars/"

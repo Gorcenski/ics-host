@@ -62,18 +62,6 @@ class Baikal:
             return [EventFile(filename=f"{e['uid']}.ics",
                               event_ics=EventHelper.wrap_event(e))
                     for e in cal.events]
-            # root = ET.fromstring(response.content)
-
-            # propstats       = [r.find('{DAV:}propstat')
-            #                    for r in root.findall('{DAV:}response')]
-            # calendar_data   = [p.find('{DAV:}prop')
-            #                    .find('{urn:ietf:params:xml:ns:caldav}calendar-data')
-            #                    for p in filter(lambda x: x is not None, propstats)]
-            # events          = [EventFile(filename=f"{event['uid']}.ics",
-            #                              event_ics=EventHelper.wrap_event(event))
-            #                    for data in filter(lambda x: x is not None, calendar_data)
-            #                    for event in Calendar.from_ical(data.text).events]
-            # return events
         return []
 
     @classmethod
@@ -91,7 +79,6 @@ class Baikal:
         for e in event_cal.events:
             cls.classify_event(default_privacy, except_list, e)
         
-        logging.info(f"Adding {event_cal['summary']}")
         event_cal = event_cal \
                     .to_ical() \
                     .decode("utf-8") \
