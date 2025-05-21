@@ -55,7 +55,10 @@ class Baikal:
                                 auth=HTTPDigestAuth(username, password))
 
         if response.ok:
-            return response.text
+            cal = Calendar().from_ical(response.content)
+            return [EventFile(filename=f"{e['uid']}.ics",
+                              event_ics=EventHelper.wrap_event(e))
+                    for e in cal.events]
             # root = ET.fromstring(response.content)
 
             # propstats       = [r.find('{DAV:}propstat')
