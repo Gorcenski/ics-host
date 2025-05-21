@@ -98,7 +98,8 @@ class Baikal:
                     .to_ical() \
                     .decode("utf-8") \
                     .replace("METHOD:REQUEST\r\n", "")
-
+        if "LH1930" in event_cal:
+            print(event_cal)
         r = requests.put(f"{url}{filename}",
                             data=event_cal,
                             headers=header,
