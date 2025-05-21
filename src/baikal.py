@@ -90,10 +90,19 @@ class Baikal:
             "Content-Type": "text/calendar; charset=utf-8"
         }
         if "@emilygorcenski.com" in event_file.filename:
-            requests.delete(f"{url}{event_file.filename}",
-                            headers=header,
-                            auth=HTTPDigestAuth(username, password))
-            return 200
+            event_cal = event_cal \
+                    .to_ical() \
+                    .decode("utf-8")
+            r = requests.delete(f"{url}{event_file.filename}",
+                                data=event_cal,
+                                headers=header,
+                                auth=HTTPDigestAuth(username, password))
+            print(r.status_code)
+            if r.status_code == 204:
+                print(f"Deleted {event_file.filename}")
+            else:
+                print(f"Failed to delete {event_file.filename}: {r.status_code}")
+            return r.status_code
         filename = event_file.filename
         event_cal = event_file.event_ics
         for e in event_cal.events:
