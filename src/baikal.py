@@ -90,6 +90,9 @@ class Baikal:
             "Content-Type": "text/calendar; charset=utf-8"
         }
         if "@emilygorcenski.com" in event_file.filename:
+            requests.delete(f"{url}{event_file.filename}",
+                            headers=header,
+                            auth=HTTPDigestAuth(username, password))
             return 200
         filename = event_file.filename
         event_cal = event_file.event_ics
