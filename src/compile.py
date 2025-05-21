@@ -42,6 +42,9 @@ if __name__ == "__main__":
         },
     ]
 
+    test = Baikal.fetch_remote_events(f"{base_url}{username}/default/")
+    print(test)
+
     importers = [partial(Baikal.add_event,**c) for c in calendar_data]
     for m, c in sources.items():
         try:

@@ -50,33 +50,24 @@ class Baikal:
             "Depth": "infinity"
         }
 
-        propfind_body = """<?xml version="1.0" encoding="utf-8"?>
-        <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-            <d:prop>
-                <d:displayname/>
-                <c:calendar-data/>
-            </d:prop>
-        </d:propfind>
-        """
-        response = requests.request("PROPFIND",
-                                    url,
-                                    headers=headers,
-                                    data=propfind_body,
-                                    auth=HTTPDigestAuth(username, password))
+        response = requests.get(f"{url}?export",
+                                headers=headers,
+                                auth=HTTPDigestAuth(username, password))
 
         if response.ok:
-            root = ET.fromstring(response.content)
+            return response.text
+            # root = ET.fromstring(response.content)
 
-            propstats       = [r.find('{DAV:}propstat')
-                               for r in root.findall('{DAV:}response')]
-            calendar_data   = [p.find('{DAV:}prop')
-                               .find('{urn:ietf:params:xml:ns:caldav}calendar-data')
-                               for p in filter(lambda x: x is not None, propstats)]
-            events          = [EventFile(filename=f"{event['uid']}.ics",
-                                         event_ics=EventHelper.wrap_event(event))
-                               for data in filter(lambda x: x is not None, calendar_data)
-                               for event in Calendar.from_ical(data.text).events]
-            return events
+            # propstats       = [r.find('{DAV:}propstat')
+            #                    for r in root.findall('{DAV:}response')]
+            # calendar_data   = [p.find('{DAV:}prop')
+            #                    .find('{urn:ietf:params:xml:ns:caldav}calendar-data')
+            #                    for p in filter(lambda x: x is not None, propstats)]
+            # events          = [EventFile(filename=f"{event['uid']}.ics",
+            #                              event_ics=EventHelper.wrap_event(event))
+            #                    for data in filter(lambda x: x is not None, calendar_data)
+            #                    for event in Calendar.from_ical(data.text).events]
+            # return events
         return []
 
     @classmethod
