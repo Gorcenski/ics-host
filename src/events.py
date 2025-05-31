@@ -42,7 +42,7 @@ class EventHelper:
     @classmethod
     def wrap_event(cls, event : Event) -> Calendar:
         cal = Calendar()
-        cal.add_component(event)
+        cal.add_component(cls.categorize(event))
         return cal
     
     @classmethod
@@ -62,7 +62,6 @@ class EventHelper:
                                             .replace(label + cat_list, "")
                                             .replace("  ", " ")
                                             .strip())
-            event = cls.wrap_event(event)
         return event
 
 class EventsImporter(ABC):
