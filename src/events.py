@@ -57,7 +57,7 @@ class EventHelper:
             label = category_match.group(1) # this should always be "CATEGORIES:""
             cat_list = category_match.group(2)
             categories = set(cat_list.split(","))
-            event["categories"] = categories.intersection(all_event_names)
+            event["categories"] = ",".join(categories.intersection(all_event_names))
             event.set_inline("description", event.get("description")
                                             .replace(label + cat_list, "")
                                             .replace("  ", " ")
