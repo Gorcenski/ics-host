@@ -89,7 +89,8 @@ class Baikal:
                                 headers=header,
                                 auth=HTTPDigestAuth(username, password))
             return r.status_code
-        except:
+        except Exception as e:
+            print(e)
             print(event_cal)
 
 
