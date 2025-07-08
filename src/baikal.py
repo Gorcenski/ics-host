@@ -79,14 +79,17 @@ class Baikal:
         for e in event_cal.events:
             cls.classify_event(default_privacy, except_list, e)
         
-        event_cal = event_cal \
-                    .to_ical() \
-                    .decode("utf-8") \
-                    .replace("METHOD:REQUEST\r\n", "")
-        r = requests.put(f"{url}{filename}",
-                            data=event_cal,
-                            headers=header,
-                            auth=HTTPDigestAuth(username, password))
+        try:
+            event_cal = event_cal \
+                        .to_ical() \
+                        .decode("utf-8") \
+                        .replace("METHOD:REQUEST\r\n", "")
+            r = requests.put(f"{url}{filename}",
+                                data=event_cal,
+                                headers=header,
+                                auth=HTTPDigestAuth(username, password))
+        except:
+            print(event_cal)
         return r.status_code
 
     @classmethod
