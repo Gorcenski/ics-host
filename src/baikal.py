@@ -88,9 +88,10 @@ class Baikal:
                                 data=event_cal,
                                 headers=header,
                                 auth=HTTPDigestAuth(username, password))
+            return r.status_code
         except:
             print(event_cal)
-        return r.status_code
+
 
     @classmethod
     def write_to_file(cls, url : str):
