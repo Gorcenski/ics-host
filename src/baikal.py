@@ -92,7 +92,7 @@ class Baikal:
         except Exception as e:
             print(e)
             print(event_cal)
-            raise(e)
+            input("fuck")
 
 
     @classmethod
