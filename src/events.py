@@ -55,8 +55,6 @@ class EventHelper:
         category_match = re.search(r'\b(CATEGORIES:)(\S+)\b', event.get("description"))
         if category_match:
             label = category_match.group(1) # this should always be "CATEGORIES:""
-            print(label)
-            input()
             cat_list = category_match.group(2)
             categories = set(cat_list.split(","))
             event["categories"] = ",".join(categories.intersection(all_event_names))

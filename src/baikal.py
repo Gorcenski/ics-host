@@ -79,21 +79,16 @@ class Baikal:
         for e in event_cal.events:
             cls.classify_event(default_privacy, except_list, e)
         
-        try:
-            event_cal = event_cal \
-                        .to_ical() \
-                        .decode("utf-8") \
-                        .replace("METHOD:REQUEST\r\n", "")
-            r = requests.put(f"{url}{filename}",
-                                data=event_cal,
-                                headers=header,
-                                auth=HTTPDigestAuth(username, password))
-            return r.status_code
-        except Exception as e:
-            print(e)
-            print(event_cal)
-            input("fuck")
-
+        event_cal = event_cal \
+                    .to_ical() \
+                    .decode("utf-8") \
+                    .replace("METHOD:REQUEST\r\n", "")
+        r = requests.put(f"{url}{filename}",
+                            data=event_cal,
+                            headers=header,
+                            auth=HTTPDigestAuth(username, password))
+        return r.status_code
+        
 
     @classmethod
     def write_to_file(cls, url : str):
