@@ -18,6 +18,7 @@ Usage:  python publish.py [--dry-run]
 Env:    BAIKAL_URL, BAIKAL_USERNAME, BAIKAL_PASSWORD, ICS_OUTPUT_DIR
 """
 
+import datetime
 import logging
 import os
 import sys
@@ -130,6 +131,40 @@ def write_atomic(path: Path, data: bytes) -> None:
         raise
 
 
+def snapshot(data: bytes, snapdir: Path, retention_days: int) -> None:
+    """Keep a dated full-detail copy as a restore point, pruning old ones.
+
+    Exists because on 2026-08-04 an iPhone deleting its CalDAV account issued a
+    DELETE on the server collection and removed 792 events. The only surviving copy
+    was the published family.ics from four minutes earlier — recovery was luck of
+    timing. One dated copy per day gives a rolling month of restore points instead.
+
+    Deliberately one file per day, overwritten by later runs, rather than one per
+    15-minute run: 96 files a day is noise, and the newest run for a given day is
+    the one worth keeping. Callers must only invoke this after a *successful*
+    non-empty fetch, or the snapshots inherit the outage.
+    """
+    today = datetime.date.today().isoformat()
+    snapdir.mkdir(parents=True, exist_ok=True)
+    write_atomic(snapdir / f"family-{today}.ics", data)
+
+    cutoff = datetime.date.today() - datetime.timedelta(days=retention_days)
+    pruned = 0
+    for old in snapdir.glob("family-*.ics"):
+        # Prune on the date in the filename, not mtime: a restore or a file copy
+        # would reset mtime and silently keep stale snapshots alive.
+        try:
+            stamp = datetime.date.fromisoformat(old.stem.removeprefix("family-"))
+        except ValueError:
+            continue
+        if stamp < cutoff:
+            old.unlink()
+            pruned += 1
+    kept = len(list(snapdir.glob("family-*.ics")))
+    logger.info("snapshot family-%s.ics (%d kept, %d pruned) in %s",
+                today, kept, pruned, snapdir)
+
+
 def main() -> int:
     load_dotenv()
     dry = "--dry-run" in sys.argv
@@ -137,6 +172,10 @@ def main() -> int:
     user = os.environ["BAIKAL_USERNAME"]
     pw = os.environ["BAIKAL_PASSWORD"]
     outdir = Path(os.environ.get("ICS_OUTPUT_DIR", "/www/calendar"))
+    # Outside the web root on purpose: these are full-detail copies of a calendar
+    # whose public feed is deliberately redacted.
+    snapdir = Path(os.environ.get("ICS_SNAPSHOT_DIR", "/home/ubuntu/ics-host/snapshots"))
+    retention = int(os.environ.get("ICS_SNAPSHOT_RETENTION_DAYS", "30"))
 
     url = f"{base}/{user}/default/?export"
     resp = requests.get(url, auth=HTTPDigestAuth(user, pw), timeout=60)
@@ -162,6 +201,10 @@ def main() -> int:
                     filename, kept + red, kept, red, len(data))
         if not dry:
             write_atomic(outdir / filename, data)
+            # Snapshot the full-detail feed only. work.ics is derivable from it, so
+            # storing both would double the size for no extra recovery ability.
+            if filename == "family.ics":
+                snapshot(data, snapdir, retention)
 
     if dry:
         logger.info("dry run — nothing written")

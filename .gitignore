@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Rolling calendar restore points written by src/publish.py. Full-detail copies
+# of a calendar whose public feed is redacted, so never commit them.
+snapshots/
