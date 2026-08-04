@@ -165,6 +165,55 @@ def snapshot(data: bytes, snapdir: Path, retention_days: int) -> None:
                 today, kept, pruned, snapdir)
 
 
+# Which Baikal collection feeds which published file.
+#   collection : the Baikal calendar URI under /calendars/<user>/
+#   outputs    : (filename, X-WR-CALNAME, redact?, snapshot?)
+# Each collection is fetched and published independently — see main().
+SOURCES = (
+    {
+        "collection": "default",
+        "outputs": (
+            ("family.ics", "Emily (full)", False, True),
+            ("work.ics", "Emily (work)", True, False),
+        ),
+    },
+    {
+        # The Bruins schedule is a whole separate collection, replaced each season.
+        # Its published URL carries the season so subscribers can tell which one they
+        # have; a new season means a new file and a new Caddy route, leaving last
+        # season's subscribers untouched rather than silently swapping the contents.
+        "collection": "bruins",
+        "outputs": (
+            ("bruins-2026-27.ics", "Boston Bruins 2026-27", False, False),
+        ),
+    },
+)
+
+
+def fetch(base: str, user: str, pw: str, collection: str) -> Calendar | None:
+    """Fetch one collection. Returns None on failure or if empty."""
+    url = f"{base}/{user}/{collection}/?export"
+    try:
+        resp = requests.get(url, auth=HTTPDigestAuth(user, pw), timeout=60)
+    except Exception as e:
+        logger.error("%s: fetch raised %s: %s", collection, type(e).__name__, e)
+        return None
+    if not resp.ok:
+        logger.error("%s: fetch failed HTTP %s from %s", collection, resp.status_code, url)
+        return None
+    cal = Calendar.from_ical(resp.content)
+    total = len(list(cal.walk("VEVENT")))
+    logger.info("fetched %d events from %s", total, collection)
+    if total == 0:
+        # Never overwrite good feeds with an empty one because of a transient fault
+        # or a deleted collection. This guard is why the 2026-08-04 iPhone deletion
+        # was recoverable: the run that followed it errored instead of publishing
+        # nothing over the last good copy.
+        logger.error("%s: source is empty — refusing to publish from it", collection)
+        return None
+    return cal
+
+
 def main() -> int:
     load_dotenv()
     dry = "--dry-run" in sys.argv
@@ -177,39 +226,38 @@ def main() -> int:
     snapdir = Path(os.environ.get("ICS_SNAPSHOT_DIR", "/home/ubuntu/ics-host/snapshots"))
     retention = int(os.environ.get("ICS_SNAPSHOT_RETENTION_DAYS", "30"))
 
-    url = f"{base}/{user}/default/?export"
-    resp = requests.get(url, auth=HTTPDigestAuth(user, pw), timeout=60)
-    if not resp.ok:
-        logger.error("fetch failed: HTTP %s from %s", resp.status_code, url)
-        return 1
+    failures = []
+    for spec in SOURCES:
+        collection = spec["collection"]
+        # Independent per collection on purpose: a missing or emptied `bruins` must
+        # not stop family.ics and work.ics from publishing. Sharing one early return
+        # would let a secondary calendar take down the primary feeds.
+        source = fetch(base, user, pw, collection)
+        if source is None:
+            failures.append(collection)
+            continue
 
-    source = Calendar.from_ical(resp.content)
-    total = len(list(source.walk("VEVENT")))
-    logger.info("fetched %d events from default", total)
-    if total == 0:
-        # Never overwrite good feeds with an empty one because of a transient fault.
-        logger.error("source calendar is empty — refusing to publish")
-        return 1
-
-    for filename, display, do_redact in (
-        ("family.ics", "Emily (full)", False),
-        ("work.ics", "Emily (work)", True),
-    ):
-        cal, kept, red = build(source, display, do_redact)
-        data = cal.to_ical()
-        logger.info("%-11s %5d events  (%d detailed, %d busy)  %d bytes",
-                    filename, kept + red, kept, red, len(data))
-        if not dry:
-            write_atomic(outdir / filename, data)
-            # Snapshot the full-detail feed only. work.ics is derivable from it, so
-            # storing both would double the size for no extra recovery ability.
-            if filename == "family.ics":
-                snapshot(data, snapdir, retention)
+        for filename, display, do_redact, do_snapshot in spec["outputs"]:
+            cal, kept, red = build(source, display, do_redact)
+            data = cal.to_ical()
+            logger.info("%-20s %5d events  (%d detailed, %d busy)  %d bytes",
+                        filename, kept + red, kept, red, len(data))
+            if not dry:
+                write_atomic(outdir / filename, data)
+                # Snapshot only the full-detail primary feed. work.ics is derivable
+                # from it, and the Bruins schedule is re-importable from source.
+                if do_snapshot:
+                    snapshot(data, snapdir, retention)
 
     if dry:
         logger.info("dry run — nothing written")
     else:
         logger.info("wrote feeds to %s", outdir)
+
+    if failures:
+        # Non-zero so cron/logs surface it, but only after publishing what worked.
+        logger.error("collections that failed to publish: %s", ", ".join(failures))
+        return 1
     return 0
 
 
